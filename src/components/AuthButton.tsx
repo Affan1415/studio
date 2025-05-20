@@ -1,9 +1,9 @@
 "use client";
 
-import { LogIn, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react"; // LogIn icon removed
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
-import { signInWithGoogle, signOut } from "@/lib/firebase/auth";
+import { signOut } from "@/lib/firebase/auth"; // signInWithGoogle removed
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -12,14 +12,7 @@ export function AuthButton() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
-  const handleSignIn = async () => {
-    const result = await signInWithGoogle();
-    if (result?.user) {
-      // Call API to ensure tokens are stored if needed beyond initial sign-in handler
-      // await fetch('/api/user/tokens', { method: 'POST' }); // This logic is in signInWithGoogle now
-      router.push("/dashboard");
-    }
-  };
+  // handleSignIn function removed as Google Sign-In is disabled
 
   const handleSignOut = async () => {
     await signOut();
@@ -52,7 +45,8 @@ export function AuthButton() {
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => router.push('/dashboard')}>
-            <LogIn className="mr-2 h-4 w-4" />
+            {/* Using a generic dashboard icon if LogIn was too specific */}
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2 h-4 w-4"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
             <span>Dashboard</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
@@ -65,9 +59,10 @@ export function AuthButton() {
     );
   }
 
+  // If no user and not loading, indicate that Google Sign-In is disabled.
   return (
-    <Button onClick={handleSignIn}>
-      <LogIn className="mr-2 h-4 w-4" /> Sign in with Google
-    </Button>
+    <p className="text-sm text-muted-foreground p-2 border rounded-md">
+      Sign-in via Google has been disabled.
+    </p>
   );
 }
