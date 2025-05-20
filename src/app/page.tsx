@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useAuth } from "@/components/providers/auth-provider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Icons } from "@/components/icons"; // Using generic Icons for placeholder
+import { LoadingSpinner } from "@/components/LoadingSpinner";
 
 export default function HomePage() {
   const { user, loading } = useAuth();
@@ -28,24 +29,37 @@ export default function HomePage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center space-y-6">
-          <p className="text-center text-foreground/80">
+          <p className="text-center text-foreground/80 px-4">
             Connect your Google Sheets and start conversing with your data like never before. 
             Ask questions, get summaries, and even update cells through chat.
           </p>
           {loading ? (
-            <div className="flex flex-col items-center space-y-4 w-full">
-              <Button disabled className="w-full h-10"></Button> {/* Placeholder for AuthButton loading state */}
+            <div className="flex flex-col items-center justify-center h-24">
+              <LoadingSpinner size={32}/>
             </div>
           ) : user ? (
-            <div className="flex flex-col items-center space-y-4 w-full">
-              <p className="text-sm text-foreground">Welcome back!</p> {/* Simpler welcome */}
+            <div className="flex flex-col items-center space-y-4 w-full px-6">
+              <p className="text-sm text-foreground">Welcome back, {user.displayName || user.email}!</p>
               <Link href="/dashboard" legacyBehavior passHref>
                 <Button className="w-full" size="lg">Go to Dashboard</Button>
               </Link>
               <AuthButton /> {/* Will show user avatar and logout */}
             </div>
           ) : (
-            <AuthButton /> /* Will show "Sign In / Sign Up" button */
+            <div className="flex flex-col items-center space-y-4 w-full px-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                Access your dashboard to connect sheets and chat with your data.
+              </p>
+              <Link href="/dashboard" legacyBehavior passHref>
+                <Button className="w-full" size="lg">Go to Dashboard</Button>
+              </Link>
+              <div className="flex items-center w-full max-w-xs pt-2">
+                <div className="flex-grow border-t border-border"></div>
+                <span className="mx-4 text-xs uppercase text-muted-foreground">Or</span>
+                <div className="flex-grow border-t border-border"></div>
+              </div>
+              <AuthButton /> {/* This will show "Sign In / Sign Up" and trigger the dialog */}
+            </div>
           )}
         </CardContent>
       </Card>
