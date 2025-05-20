@@ -1,22 +1,39 @@
+
 "use client";
 
-import { LogOut } from "lucide-react"; // LogIn icon removed
+import React, { useState } from 'react';
+import { LogOut, UserCircle } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
-import { signOut } from "@/lib/firebase/auth"; // signInWithGoogle removed
+import { signOut } from "@/lib/firebase/auth";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { EmailPasswordAuthForm } from './EmailPasswordAuthForm'; // Import the new form
 
 export function AuthButton() {
   const { user, loading } = useAuth();
   const router = useRouter();
-
-  // handleSignIn function removed as Google Sign-In is disabled
+  const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
-    router.push("/");
+    router.push("/"); // Redirect to home page after sign out
   };
 
   if (loading) {
@@ -45,7 +62,6 @@ export function AuthButton() {
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => router.push('/dashboard')}>
-            {/* Using a generic dashboard icon if LogIn was too specific */}
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2 h-4 w-4"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
             <span>Dashboard</span>
           </DropdownMenuItem>
@@ -59,10 +75,24 @@ export function AuthButton() {
     );
   }
 
-  // If no user and not loading, indicate that Google Sign-In is disabled.
+  // If no user and not loading, show Sign In / Sign Up button triggering a dialog
   return (
-    <p className="text-sm text-muted-foreground p-2 border rounded-md">
-      Sign-in via Google has been disabled.
-    </p>
+    <Dialog open={isAuthDialogOpen} onOpenChange={setIsAuthDialogOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline">
+          <UserCircle className="mr-2 h-4 w-4" />
+          Sign In / Sign Up
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Access Your Account</DialogTitle>
+          <DialogDescription>
+            Sign in to continue or sign up to create a new account.
+          </DialogDescription>
+        </DialogHeader>
+        <EmailPasswordAuthForm onSuccess={() => setIsAuthDialogOpen(false)} />
+      </DialogContent>
+    </Dialog>
   );
 }

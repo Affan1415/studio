@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -6,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/components/providers/auth-provider";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Sheet } from "lucide-react"; // Using Sheet icon for logo placeholder
+import { Icons } from "@/components/icons"; // Using generic Icons for placeholder
 
 export default function HomePage() {
   const { user, loading } = useAuth();
@@ -19,7 +20,7 @@ export default function HomePage() {
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center">
           <div className="inline-flex items-center justify-center mb-4">
-            <Sheet className="h-12 w-12 text-primary" />
+            <Icons.sheet className="h-12 w-12 text-primary" />
           </div>
           <CardTitle className="text-3xl font-bold">SheetChat</CardTitle>
           <CardDescription className="text-lg text-muted-foreground">
@@ -32,17 +33,19 @@ export default function HomePage() {
             Ask questions, get summaries, and even update cells through chat.
           </p>
           {loading ? (
-            <Button disabled className="w-full">Loading...</Button>
+            <div className="flex flex-col items-center space-y-4 w-full">
+              <Button disabled className="w-full h-10"></Button> {/* Placeholder for AuthButton loading state */}
+            </div>
           ) : user ? (
             <div className="flex flex-col items-center space-y-4 w-full">
-              <p className="text-sm text-foreground">Welcome back, {user.displayName || user.email}!</p>
+              <p className="text-sm text-foreground">Welcome back!</p> {/* Simpler welcome */}
               <Link href="/dashboard" legacyBehavior passHref>
                 <Button className="w-full" size="lg">Go to Dashboard</Button>
               </Link>
-              <AuthButton />
+              <AuthButton /> {/* Will show user avatar and logout */}
             </div>
           ) : (
-            <AuthButton />
+            <AuthButton /> /* Will show "Sign In / Sign Up" button */
           )}
         </CardContent>
       </Card>
