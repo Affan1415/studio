@@ -17,7 +17,8 @@ export default function HomePage() {
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-background to-secondary/30 p-4">
       <div className="absolute top-4 right-4 flex items-center space-x-2">
         <ThemeToggle />
-        { !loading && user && <AuthButton /> } {/* Show AuthButton for logged in user options */}
+        {/* AuthButton will show different states based on login status */}
+        { !loading && <AuthButton /> }
       </div>
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center">
@@ -47,8 +48,12 @@ export default function HomePage() {
             </div>
           ) : (
              <div className="flex flex-col items-center space-y-4 w-full px-6">
-                <p className="text-sm text-muted-foreground">Sign in to access your dashboard and connect your sheets.</p>
-                <AuthButton /> {/* Shows "Sign in with Google" when logged out */}
+                {/* AuthButton already provides "Sign In / Sign Up" when logged out */}
+                {/* <p className="text-sm text-muted-foreground">Sign in or create an account to access your dashboard.</p> */}
+                <Link href="/dashboard" legacyBehavior passHref>
+                  <Button className="w-full" variant="secondary" size="lg">Go to Dashboard</Button>
+                </Link>
+                 <p className="text-xs text-muted-foreground mt-2">Or sign in/up above.</p>
             </div>
           )}
         </CardContent>

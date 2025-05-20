@@ -6,15 +6,13 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase/config";
 import type { ReactNode } from "react";
 import React, { createContext, useContext, useEffect, useState } from "react";
-// import type { DocumentData } from "firebase/firestore"; // Not used directly here anymore
 
-// Keeping User interface flexible for FirebaseUser properties
 export interface User extends FirebaseUser {}
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  googleAccessToken: string | null;
+  googleAccessToken: string | null; // Still here for potential Google Sign-In later
   setGoogleAccessToken: (token: string | null) => void;
 }
 
@@ -29,13 +27,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser as User);
-        // Note: The Google access token obtained at sign-in is short-lived.
-        // If you need it persistently, you'd typically store it (e.g., in context, localStorage for session)
-        // or use a refresh token flow for long-term server-side access.
-        // For now, `setGoogleAccessToken` will be called by AuthButton after sign-in.
+        // Google access token is typically set after a successful Google sign-in.
+        // If user authenticated with email/password, this remains null unless explicitly set elsewhere.
       } else {
         setUser(null);
-        setGoogleAccessToken(null); // Clear access token on sign out
+        setGoogleAccessToken(null); // Clear Google access token on sign out
       }
       setLoading(false);
     });
