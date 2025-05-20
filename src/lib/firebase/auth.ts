@@ -1,11 +1,8 @@
+
 import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
   type UserCredential,
   type User,
   signOut as firebaseSignOut,
-  // GoogleAuthProvider, // No longer directly used here for sign-in trigger
-  // signInWithPopup, // No longer directly used here for sign-in trigger
 } from "firebase/auth";
 import { auth, db } from "./config";
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
@@ -36,55 +33,29 @@ export const handleUserDocument = async (user: User): Promise<void> => {
   }
 };
 
-// Sign Up with Email and Password
-export const signUpWithEmail = async (email: string, password: string): Promise<UserCredential | null> => {
-  try {
-    const result = await createUserWithEmailAndPassword(auth, email, password);
-    await handleUserDocument(result.user);
-    return result;
-  } catch (error: any) {
-    console.error("Error signing up with email and password:", error);
-    // Consider re-throwing or returning error code for UI handling
-    throw error; // Re-throw to be caught by calling component
-  }
-};
-
-// Sign In with Email and Password
-export const signInWithEmail = async (email: string, password: string): Promise<UserCredential | null> => {
-  try {
-    const result = await signInWithEmailAndPassword(auth, email, password);
-    await handleUserDocument(result.user); // Update lastLogin, etc.
-    return result;
-  } catch (error: any) {
-    console.error("Error signing in with email and password:", error);
-    // Consider re-throwing or returning error code for UI handling
-    throw error; // Re-throw to be caught by calling component
-  }
-};
-
-
-// Sign in with Google (Kept for potential future re-enablement, but not primary)
+// Sign in with Google
 export const signInWithGoogle = async (): Promise<{ user: User; accessToken: string | null } | null> => {
-  const provider = new (await import('firebase/auth')).GoogleAuthProvider(); // Dynamically import
-  provider.addScope('https://www.googleapis.com/auth/spreadsheets');
+  const { GoogleAuthProvider, signInWithPopup } = await import('firebase/auth');
+  const provider = new GoogleAuthProvider();
+  provider.addScope('https://www.googleapis.com/auth/spreadsheets'); // Request access to Google Sheets
 
   try {
-    const signInWithPopup = (await import('firebase/auth')).signInWithPopup;
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
 
-    const GoogleAuthProviderCredentials = (await import('firebase/auth')).GoogleAuthProvider;
-    const credential = GoogleAuthProviderCredentials.credentialFromResult(result);
+    // Get Google OAuth access token
+    const credential = GoogleAuthProvider.credentialFromResult(result);
     const accessToken = credential?.accessToken || null;
-
-    await handleUserDocument(user);
+    
+    await handleUserDocument(user); // Create or update user document in Firestore
     return { user, accessToken };
   } catch (error: any) {
     console.error("Error during Google sign-in:", error);
-    if (error.code === 'auth/popup-closed-by-user') {
+     if (error.code === 'auth/popup-closed-by-user') {
       // User closed the popup
+      // Handled in AuthButton by checking for null result
     }
-    return null;
+    return null; // Indicate failure
   }
 };
 
@@ -101,6 +72,14 @@ export const signOut = async (): Promise<void> => {
 // This function might be repurposed if server-side token storage is needed.
 // For client-side, the AuthProvider will hold the accessToken if Google Sign-In is used.
 export const getStoredGoogleAccessToken = async (userId: string): Promise<string | null> => {
-  console.warn("Access token is managed by AuthProvider for Google Sign-In. This function may be deprecated or repurposed for other token types.");
+  // This implementation is a placeholder as access token is now managed in AuthProvider for client-side.
+  // For server-side scenarios, a secure token store would be needed.
+  console.warn("getStoredGoogleAccessToken is a placeholder and might be deprecated for client-side token management.");
+  // Example: If you were storing tokens in Firestore (ensure secure server-side access only)
+  // const tokenRef = doc(db, "users", userId, "private", "googleCredentials");
+  // const tokenDoc = await getDoc(tokenRef);
+  // if (tokenDoc.exists()) {
+  //   return tokenDoc.data().accessToken;
+  // }
   return null;
 };

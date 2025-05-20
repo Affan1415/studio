@@ -17,7 +17,7 @@ export default function HomePage() {
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-background to-secondary/30 p-4">
       <div className="absolute top-4 right-4 flex items-center space-x-2">
         <ThemeToggle />
-        {/* AuthButton will show different states based on login status */}
+        {/* AuthButton will show "Sign In with Google" or user avatar based on login status */}
         { !loading && <AuthButton /> }
       </div>
       <Card className="w-full max-w-md shadow-2xl">
@@ -48,12 +48,11 @@ export default function HomePage() {
             </div>
           ) : (
              <div className="flex flex-col items-center space-y-4 w-full px-6">
-                {/* AuthButton already provides "Sign In / Sign Up" when logged out */}
-                {/* <p className="text-sm text-muted-foreground">Sign in or create an account to access your dashboard.</p> */}
+                <p className="text-sm text-muted-foreground">Sign in with Google above to get started.</p>
                 <Link href="/dashboard" legacyBehavior passHref>
-                  <Button className="w-full" variant="secondary" size="lg">Go to Dashboard</Button>
+                  <Button className="w-full" variant="secondary" size="lg" disabled>Go to Dashboard</Button>
                 </Link>
-                 <p className="text-xs text-muted-foreground mt-2">Or sign in/up above.</p>
+                 <p className="text-xs text-muted-foreground mt-2">You need to sign in to access the dashboard.</p>
             </div>
           )}
         </CardContent>

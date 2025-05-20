@@ -1,11 +1,11 @@
 
 "use client";
 
-import React, { useState } from 'react';
-import { LogOut, UserCircle, Mail } from "lucide-react"; // Using Mail for Email/Pass auth
+import React from 'react';
+import { LogIn, LogOut, UserCircle } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
-import { signOut } from "@/lib/firebase/auth"; // signInWithGoogle removed for now
+import { signInWithGoogle, signOut } from "@/lib/firebase/auth";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -16,48 +16,37 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogTrigger,
-  DialogClose,
-} from "@/components/ui/dialog";
 import { Icons } from './icons';
 import { useToast } from '@/hooks/use-toast';
-import { EmailPasswordAuthForm } from './EmailPasswordAuthForm';
 
 export function AuthButton() {
-  const { user, loading, setGoogleAccessToken } = useAuth(); // googleAccessToken kept for potential future use
+  const { user, loading, setGoogleAccessToken } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [dialogOpen, setDialogOpen] = useState(false);
 
-
-  // const handleSignInWithGoogle = async () => {
-  //   // Logic for Google Sign-In, currently disabled
-  //   // const result = await signInWithGoogle();
-  //   // if (result && result.user) {
-  //   //   setGoogleAccessToken(result.accessToken);
-  //   //   toast({
-  //   //     title: "Signed In via Google",
-  //   //     description: `Welcome, ${result.user.displayName || result.user.email}!`,
-  //   //   });
-  //   //   router.push("/dashboard");
-  //   // } else {
-  //   //   toast({
-  //   //     title: "Google Sign-In Failed",
-  //   //     description: "Could not sign in with Google. The popup may have been closed or an error occurred.",
-  //   //     variant: "destructive",
-  //   //   });
-  //   // }
-  // };
+  const handleSignInWithGoogle = async () => {
+    const result = await signInWithGoogle();
+    if (result && result.user) {
+      setGoogleAccessToken(result.accessToken); // Store the access token
+      toast({
+        title: "Signed In",
+        description: `Welcome, ${result.user.displayName || result.user.email}!`,
+      });
+      router.push("/dashboard");
+    } else {
+      // signInWithGoogle already logs detailed errors to console
+      toast({
+        title: "Google Sign-In Failed",
+        description: "The Google Sign-In process was cancelled or failed. Please ensure pop-ups are enabled and try again. Check console for more details.",
+        variant: "destructive",
+      });
+      console.error("Google Sign-In failed or was cancelled.");
+    }
+  };
 
   const handleSignOut = async () => {
     await signOut();
-    setGoogleAccessToken(null); // Clear any access token
+    setGoogleAccessToken(null); // Clear the access token
     toast({
       title: "Signed Out",
       description: "You have been successfully signed out.",
@@ -65,32 +54,15 @@ export function AuthButton() {
     router.push("/");
   };
 
-  const handleAuthSuccess = () => {
-    setDialogOpen(false); // Close dialog on successful auth from form
-  }
-
   if (loading) {
     return <Button variant="outline" disabled><Icons.loader className="mr-2 h-4 w-4 animate-spin" />Loading...</Button>;
   }
 
   if (!user) {
     return (
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogTrigger asChild>
-          <Button variant="outline">
-            <Mail className="mr-2 h-4 w-4" /> Sign In / Sign Up
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Authenticate</DialogTitle>
-            <DialogDescription>
-              Sign in to your account or create a new one.
-            </DialogDescription>
-          </DialogHeader>
-          <EmailPasswordAuthForm onAuthSuccess={handleAuthSuccess} />
-        </DialogContent>
-      </Dialog>
+      <Button variant="outline" onClick={handleSignInWithGoogle}>
+        <LogIn className="mr-2 h-4 w-4" /> Sign In with Google
+      </Button>
     );
   }
 
