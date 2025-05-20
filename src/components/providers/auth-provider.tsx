@@ -2,54 +2,49 @@
 "use client";
 
 import type { User as FirebaseUser } from "firebase/auth";
-// import { onAuthStateChanged } from "firebase/auth"; // No longer needed
-// import { auth } from "@/lib/firebase/config"; // No longer needed for onAuthStateChanged
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "@/lib/firebase/config";
 import type { ReactNode } from "react";
 import React, { createContext, useContext, useEffect, useState } from "react";
-import type { DocumentData } from "firebase/firestore";
+// import type { DocumentData } from "firebase/firestore"; // Not used directly here anymore
 
-export interface User extends Partial<FirebaseUser> { // Making FirebaseUser properties partial
-  uid: string; // uid is essential
-  customData?: DocumentData;
-  // Mock user will need to satisfy this, or make it more flexible
-  email?: string | null;
-  displayName?: string | null;
-  photoURL?: string | null;
-}
+// Keeping User interface flexible for FirebaseUser properties
+export interface User extends FirebaseUser {}
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  // getGoogleAccessToken method removed
+  googleAccessToken: string | null;
+  setGoogleAccessToken: (token: string | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Define a mock user for the no-authentication setup
-const mockUser: User = {
-  uid: "mock-user-001",
-  email: "user@example.com",
-  displayName: "App User",
-  photoURL: null,
-  // Add any other User properties if your components rely on them, e.g.
-  // emailVerified: true,
-  // isAnonymous: false,
-};
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  // User is now always the mockUser, loading is always false.
-  const [user, setUser] = useState<User | null>(mockUser);
-  const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [googleAccessToken, setGoogleAccessToken] = useState<string | null>(null);
 
   useEffect(() => {
-    // No actual authentication state to listen to.
-    // We just ensure loading is false and user is set to the mock user.
-    setUser(mockUser);
-    setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        setUser(firebaseUser as User);
+        // Note: The Google access token obtained at sign-in is short-lived.
+        // If you need it persistently, you'd typically store it (e.g., in context, localStorage for session)
+        // or use a refresh token flow for long-term server-side access.
+        // For now, `setGoogleAccessToken` will be called by AuthButton after sign-in.
+      } else {
+        setUser(null);
+        setGoogleAccessToken(null); // Clear access token on sign out
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading }}>
+    <AuthContext.Provider value={{ user, loading, googleAccessToken, setGoogleAccessToken }}>
       {children}
     </AuthContext.Provider>
   );

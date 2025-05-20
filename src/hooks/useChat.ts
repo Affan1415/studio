@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
 // import type { ChatMessage as FirestoreChatMessage } from "@/lib/firebase/firestore";
 // import { Timestamp } from "firebase/firestore";
@@ -15,8 +15,7 @@ export interface ChatMessage {
 }
 
 export function useChat(spreadsheetId: string | null) {
-  // user will be the mock user from AuthProvider. getGoogleAccessToken was removed.
-  const { user } = useAuth(); 
+  const { user, googleAccessToken } = useAuth(); 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,8 +29,8 @@ export function useChat(spreadsheetId: string | null) {
 
   const sendMessage = useCallback(
     async (text: string) => {
-      if (!user || !spreadsheetId) { // user will be the mock user
-        setError("User (mocked) not available or spreadsheet not selected.");
+      if (!user || !spreadsheetId) {
+        setError(user ? "Spreadsheet not selected." : "You must be signed in to chat.");
         return;
       }
       setIsLoading(true);
@@ -49,15 +48,25 @@ export function useChat(spreadsheetId: string | null) {
       ]);
 
       try {
-        // const firebaseIdToken = await user.getIdToken(); // getIdToken may not exist on mock user or is irrelevant
-        // The API call will now proceed without an IdToken.
+        const firebaseIdToken = await user.getIdToken();
+        const requestBody: any = { 
+            question: text, 
+            spreadsheetId, 
+            useWritebackFlow: true 
+        };
+
+        // Include Google Access Token if available and writeback is intended
+        if (googleAccessToken && requestBody.useWritebackFlow) {
+            requestBody.googleAccessToken = googleAccessToken;
+        }
+
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            // Authorization: `Bearer ${firebaseIdToken}`, // Auth header removed
+            Authorization: `Bearer ${firebaseIdToken}`,
           },
-          body: JSON.stringify({ question: text, spreadsheetId, useWritebackFlow: true }),
+          body: JSON.stringify(requestBody),
         });
 
         setMessages(prev => prev.filter(msg => msg.id !== loadingBotMessageId));
@@ -79,15 +88,20 @@ export function useChat(spreadsheetId: string | null) {
         setIsLoading(false);
       }
     },
-    [user, spreadsheetId] // getGoogleAccessToken removed from dependencies
+    [user, spreadsheetId, googleAccessToken] 
   );
   
-  const loadInitialMessages = useCallback(async () => {
-    if (!user || !spreadsheetId) return; // user is mock user
-    // For now, we start with a clean slate or a welcome message
-    // setMessages([{ id: 'initial-bot', text: `Hello! I'm ready to chat about sheet ${spreadsheetId}. (Auth Disabled)`, sender: 'bot', timestamp: new Date() }]);
-  }, [user, spreadsheetId]);
+  // Placeholder, initial messages could be loaded from Firestore or set to a default
+  useEffect(() => {
+    if (spreadsheetId && user) {
+        setMessages([{ id: 'initial-bot-msg', text: `Ready to chat about sheet: ${spreadsheetId.substring(0,10)}... Ask me anything!`, sender: 'bot', timestamp: new Date() }]);
+    } else if (!user && !spreadsheetId) {
+         setMessages([{ id: 'initial-bot-msg-no-sheet', text: `Please sign in and connect a sheet to start chatting.`, sender: 'bot', timestamp: new Date() }]);
+    } else if (user && !spreadsheetId) {
+        setMessages([{ id: 'initial-bot-msg-no-sheet', text: `Please connect a sheet from the dashboard to start chatting.`, sender: 'bot', timestamp: new Date() }]);
+    }
+  }, [spreadsheetId, user, setMessages]);
 
 
-  return { messages, isLoading, error, sendMessage, loadInitialMessages, setMessages };
+  return { messages, isLoading, error, sendMessage, setMessages };
 }

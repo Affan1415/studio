@@ -6,18 +6,19 @@ import { Icons } from "@/components/icons";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/providers/auth-provider";
-// import { signOut } from "@/lib/firebase/auth"; // signOut is effectively a no-op
-// import { useRouter } from "next/navigation"; // No longer needed for sign out
+import { signOut } from "@/lib/firebase/auth";
+import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 
 export default function SettingsPage() {
-  const { user } = useAuth(); // user is mock user
-  // const router = useRouter();
+  const { user, setGoogleAccessToken } = useAuth();
+  const router = useRouter();
 
-  // const handleSignOut = async () => { // Sign out functionality removed
-  //   await signOut();
-  //   // router.push("/");
-  // };
+  const handleSignOut = async () => {
+    await signOut();
+    setGoogleAccessToken(null);
+    router.push("/");
+  };
 
   return (
     <div className="space-y-8">
@@ -27,9 +28,9 @@ export default function SettingsPage() {
           <CardDescription>Manage your account preferences and settings.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {user && ( // This will display mock user info
+          {user && (
             <div className="space-y-2">
-              <h3 className="text-lg font-medium">User Information (Mocked)</h3>
+              <h3 className="text-lg font-medium">User Information</h3>
               <p className="text-sm text-muted-foreground"><strong>Email:</strong> {user.email}</p>
               <p className="text-sm text-muted-foreground"><strong>Display Name:</strong> {user.displayName || "Not set"}</p>
               <p className="text-sm text-muted-foreground"><strong>User ID:</strong> {user.uid}</p>
@@ -50,14 +51,13 @@ export default function SettingsPage() {
             <Button variant="outline" disabled>Select Language</Button>
           </div>
 
-          {/* Danger Zone with Sign Out button removed */}
-          {/* <div className="space-y-2">
+          <div className="space-y-2 pt-4 border-t">
             <h3 className="text-lg font-medium">Danger Zone</h3>
              <Button variant="destructive" onClick={handleSignOut}>
                 <Icons.logOut className="mr-2 h-4 w-4" /> Sign Out
              </Button>
              <p className="text-xs text-muted-foreground mt-1">This will sign you out of your current session.</p>
-          </div> */}
+          </div>
 
         </CardContent>
       </Card>

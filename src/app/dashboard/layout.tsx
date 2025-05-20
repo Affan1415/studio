@@ -20,8 +20,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/icons";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import React from "react"; // useEffect removed as auth check is gone
+import React, { useEffect } from "react";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { signOut } from "@/lib/firebase/auth";
 
 const navItems = [
   { href: "/dashboard", label: "Overview", icon: Icons.barChart },
@@ -36,23 +37,32 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading } = useAuth(); // user will be mock, loading false
+  const { user, loading, setGoogleAccessToken } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
-  // useEffect(() => { // Auth check removed
-  //   if (!loading && !user) {
-  //     router.replace("/");
-  //   }
-  // }, [user, loading, router]);
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/"); // Redirect to home if not logged in
+    }
+  }, [user, loading, router]);
 
-  if (loading) { // Should not happen with auth removed
+  if (loading || (!user && pathname !== "/")) { // Show spinner if loading or if not user and not on home (during redirect)
     return (
       <div className="flex h-screen items-center justify-center">
         <LoadingSpinner size={48} />
       </div>
     );
   }
+  
+  if (!user) return null; // Don't render layout if user is null and not loading (already handled by redirect)
+
+
+  const handleSignOut = async () => {
+    await signOut();
+    setGoogleAccessToken(null);
+    router.push('/');
+  };
 
   return (
     <SidebarProvider defaultOpen>
@@ -91,16 +101,11 @@ export default function DashboardLayout({
            <div className="group-data-[collapsible=icon]:hidden">
             <ThemeToggle />
            </div>
-           {/* Logout button removed as auth is gone */}
-           {/* <Button variant="ghost" onClick={async () => {
-             const { signOut } = await import("@/lib/firebase/auth"); // signOut is now a no-op
-             await signOut();
-             router.push('/');
-           }} className="w-full justify-start group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:aspect-square group-data-[collapsible=icon]:p-0">
+           <Button variant="ghost" onClick={handleSignOut} className="w-full justify-start group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:aspect-square group-data-[collapsible=icon]:p-0">
             <Icons.logOut />
             <span className="group-data-[collapsible=icon]:hidden ml-2">Logout</span>
-          </Button> */}
-          {user && ( // Display mock user info
+          </Button>
+          {user && (
             <div className="flex items-center gap-2 mt-2 group-data-[collapsible=icon]:hidden">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={user.photoURL || undefined} />

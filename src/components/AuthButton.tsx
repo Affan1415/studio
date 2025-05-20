@@ -1,58 +1,96 @@
 
 "use client";
 
-import React from 'react'; // useState removed
-// import { LogOut, UserCircle } from "lucide-react"; // Icons for auth states removed
+import React from 'react';
+import { LogOut, UserCircle, Chrome } from "lucide-react"; // Added Chrome for Google icon
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
-// import { signOut } from "@/lib/firebase/auth"; // SignOut is now a no-op
-// import { useRouter } from "next/navigation";
-// import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-// import {
-//   DropdownMenu,
-//   DropdownMenuContent,
-//   DropdownMenuItem,
-//   DropdownMenuLabel,
-//   DropdownMenuSeparator,
-//   DropdownMenuTrigger,
-// } from "@/components/ui/dropdown-menu";
-// import {
-//   Dialog,
-//   DialogContent,
-//   DialogDescription,
-//   DialogHeader,
-//   DialogTitle,
-//   DialogTrigger,
-// } from "@/components/ui/dialog";
-// import { EmailPasswordAuthForm } from './EmailPasswordAuthForm'; // Form removed
+import { signInWithGoogle, signOut } from "@/lib/firebase/auth";
+import { useRouter } from "next/navigation";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Icons } from './icons'; // For loading spinner
 
 export function AuthButton() {
-  const { user, loading } = useAuth(); // user is mock, loading is false
-  // const router = useRouter();
-  // const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false); // Dialog logic removed
+  const { user, loading, setGoogleAccessToken, googleAccessToken } = useAuth();
+  const router = useRouter();
 
-  // const handleSignOut = async () => { // Sign out logic removed
-  //   await signOut();
-  //   router.push("/"); 
-  // };
+  const handleSignInWithGoogle = async () => {
+    const result = await signInWithGoogle();
+    if (result && result.user) {
+      setGoogleAccessToken(result.accessToken);
+      // Optionally, you can store the accessToken in localStorage or context for broader use
+      // For example, if your API calls from other components need it.
+      console.log("Google Sign-In successful, Access Token:", result.accessToken ? "obtained" : "not obtained");
+      router.push("/dashboard"); // Navigate to dashboard on successful login
+    } else {
+      // Handle sign-in failure (e.g., display a toast message)
+      console.error("Google Sign-In failed or was cancelled.");
+    }
+  };
 
-  if (loading) { // This case should not be hit with auth removed
-    return <Button variant="outline" disabled>Loading...</Button>;
+  const handleSignOut = async () => {
+    await signOut();
+    setGoogleAccessToken(null); // Clear access token from context
+    router.push("/");
+  };
+
+  if (loading) {
+    return <Button variant="outline" disabled><Icons.loader className="mr-2 h-4 w-4 animate-spin" />Loading...</Button>;
   }
 
-  // Since authentication is removed, this button doesn't need to do much.
-  // It could be removed entirely from layouts, or display some generic info.
-  // For now, let's make it render nothing to avoid clutter if it's still in a layout.
-  if (!user) { // This case should also not be hit if user is always mocked
-     console.warn("AuthButton: No user found, this shouldn't happen with mocked auth.");
-     return null;
+  if (!user) {
+    return (
+      <Button onClick={handleSignInWithGoogle} variant="outline">
+        <Chrome className="mr-2 h-4 w-4" /> Sign in with Google
+      </Button>
+    );
   }
 
-  // If a mock user exists, we could display something minimal or nothing.
-  // Example: Display mock user's name if needed for debugging, otherwise null.
-  // return <span className="text-sm text-muted-foreground">User: {user.displayName} (Mocked)</span>;
-
-  // Returning null as its primary purpose (login/logout) is gone.
-  // If it's still used in layouts, it won't render anything visible.
-  return null;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={user.photoURL || undefined} alt={user.displayName || "User"} />
+            <AvatarFallback>
+              {user.displayName ? user.displayName[0].toUpperCase() : <UserCircle />}
+            </AvatarFallback>
+          </Avatar>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-56" align="end" forceMount>
+        <DropdownMenuLabel className="font-normal">
+          <div className="flex flex-col space-y-1">
+            <p className="text-sm font-medium leading-none">{user.displayName || "User"}</p>
+            <p className="text-xs leading-none text-muted-foreground">
+              {user.email}
+            </p>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
+          <Icons.settings className="mr-2 h-4 w-4" />
+          Settings
+        </DropdownMenuItem>
+        {googleAccessToken && (
+          <DropdownMenuItem disabled>
+            <span className="text-xs text-muted-foreground truncate" title={googleAccessToken}>Access Token: obtained</span>
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleSignOut}>
+          <LogOut className="mr-2 h-4 w-4" />
+          Log out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }

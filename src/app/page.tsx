@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-// import { AuthButton } from "@/components/AuthButton"; // AuthButton removed
+import { AuthButton } from "@/components/AuthButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -11,12 +11,13 @@ import { Icons } from "@/components/icons";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 
 export default function HomePage() {
-  const { user, loading } = useAuth(); // user will be the mock user, loading will be false
+  const { user, loading } = useAuth();
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-background to-secondary/30 p-4">
-      <div className="absolute top-4 right-4">
+      <div className="absolute top-4 right-4 flex items-center space-x-2">
         <ThemeToggle />
+        { !loading && user && <AuthButton /> } {/* Show AuthButton for logged in user options */}
       </div>
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center">
@@ -31,19 +32,23 @@ export default function HomePage() {
         <CardContent className="flex flex-col items-center space-y-6">
           <p className="text-center text-foreground/80 px-4">
             Connect your Google Sheets and start conversing with your data like never before. 
-            Ask questions, get summaries, and (potentially) update cells through chat.
+            Ask questions, get summaries, and update cells through chat.
           </p>
-          {loading ? ( // This will likely not be true anymore
+          {loading ? (
             <div className="flex flex-col items-center justify-center h-24">
               <LoadingSpinner size={32}/>
             </div>
-          ) : ( // Auth is removed, so always show dashboard button
+          ) : user ? (
             <div className="flex flex-col items-center space-y-4 w-full px-6">
-              {user && <p className="text-sm text-foreground">Welcome, {user.displayName || user.email}!</p>}
+              <p className="text-sm text-foreground">Welcome, {user.displayName || user.email}!</p>
               <Link href="/dashboard" legacyBehavior passHref>
                 <Button className="w-full" size="lg">Go to Dashboard</Button>
               </Link>
-              {/* AuthButton removed from here. If sign-in is re-added, it would go here. */}
+            </div>
+          ) : (
+             <div className="flex flex-col items-center space-y-4 w-full px-6">
+                <p className="text-sm text-muted-foreground">Sign in to access your dashboard and connect your sheets.</p>
+                <AuthButton /> {/* Shows "Sign in with Google" when logged out */}
             </div>
           )}
         </CardContent>

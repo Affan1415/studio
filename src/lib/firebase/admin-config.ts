@@ -1,32 +1,31 @@
 import * as admin from "firebase-admin";
 
-const hasBeenInitialized = admin.apps.length > 0;
+let hasBeenInitialized = admin.apps.length > 0;
 
 export function initAdminApp() {
   if (hasBeenInitialized) {
-    return;
+    return admin.app(); // Return the already initialized app
   }
 
-  // These environment variables are automatically set by Firebase Functions/Cloud Run if deployed there.
-  // For local development, you might need to set GOOGLE_APPLICATION_CREDENTIALS to point to your service account key JSON file.
-  // Or, if using `firebase emulators:start`, it might work without explicit creds.
-  
-  // For local development with `genkit start` or `next dev`, using `GOOGLE_APPLICATION_CREDENTIALS` is common.
-  // Ensure your service account has necessary permissions.
-
   try {
-    admin.initializeApp({
+    const app = admin.initializeApp({
       credential: process.env.GOOGLE_APPLICATION_CREDENTIALS
-        ? admin.credential.cert(process.env.GOOGLE_APPLICATION_CREDENTIALS)
-        : admin.credential.applicationDefault(), // For environments like Cloud Functions/Run
-      // databaseURL: `https://${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.firebaseio.com` // Optional
+        ? admin.credential.cert(JSON.parse(Buffer.from(process.env.GOOGLE_APPLICATION_CREDENTIALS, 'base64').toString('utf-8')))
+        : admin.credential.applicationDefault(),
     });
     console.log("Firebase Admin SDK initialized.");
+    hasBeenInitialized = true;
+    return app;
   } catch (error: any) {
+    // Check if the error is because the app is already initialized (which can happen in some hot-reloading scenarios)
     if (error.code === 'app/duplicate-app') {
       console.warn("Firebase Admin SDK already initialized (duplicate app error suppressed).");
-    } else {
-      console.error("Firebase Admin SDK initialization error:", error);
+      hasBeenInitialized = true;
+      return admin.app(); // Return the existing app
     }
+    // Log other initialization errors
+    console.error("Firebase Admin SDK initialization error:", error);
+    // Optionally re-throw or handle more gracefully depending on your application's needs
+    throw error; // Re-throw if it's a critical error preventing app function
   }
 }
