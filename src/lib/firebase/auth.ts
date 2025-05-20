@@ -33,11 +33,22 @@ export const handleUserDocument = async (user: User): Promise<void> => {
   }
 };
 
+interface SignInResult {
+  user: User | null;
+  accessToken: string | null;
+  error?: {
+    code?: string;
+    message?: string;
+  };
+}
+
 // Sign in with Google
-export const signInWithGoogle = async (): Promise<{ user: User; accessToken: string | null } | null> => {
+export const signInWithGoogle = async (): Promise<SignInResult> => {
   const { GoogleAuthProvider, signInWithPopup } = await import('firebase/auth');
   const provider = new GoogleAuthProvider();
-  provider.addScope('https://www.googleapis.com/auth/spreadsheets'); // Request access to Google Sheets
+  // Request access to Google Sheets.
+  // This scope is crucial for the app's core functionality.
+  provider.addScope('https://www.googleapis.com/auth/spreadsheets'); 
 
   try {
     const result = await signInWithPopup(auth, provider);
@@ -51,11 +62,14 @@ export const signInWithGoogle = async (): Promise<{ user: User; accessToken: str
     return { user, accessToken };
   } catch (error: any) {
     console.error("Error during Google sign-in:", error);
-     if (error.code === 'auth/popup-closed-by-user') {
-      // User closed the popup
-      // Handled in AuthButton by checking for null result
-    }
-    return null; // Indicate failure
+    return { 
+      user: null, 
+      accessToken: null, 
+      error: { 
+        code: error.code || 'UNKNOWN_ERROR', 
+        message: error.message || 'An unexpected error occurred during sign-in.' 
+      } 
+    };
   }
 };
 
@@ -82,4 +96,34 @@ export const getStoredGoogleAccessToken = async (userId: string): Promise<string
   //   return tokenDoc.data().accessToken;
   // }
   return null;
+};
+
+// Placeholder for Email/Password Sign Up if re-enabled
+export const signUpWithEmail = async (email: string, password: string): Promise<SignInResult> => {
+  // const { createUserWithEmailAndPassword } = await import('firebase/auth');
+  // try {
+  //   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+  //   await handleUserDocument(userCredential.user);
+  //   return { user: userCredential.user, accessToken: null }; // No Google access token here
+  // } catch (error: any) {
+  //   console.error("Error signing up with email and password:", error);
+  //   return { user: null, accessToken: null, error: { code: error.code, message: error.message } };
+  // }
+  console.warn("signUpWithEmail is currently disabled.");
+  return { user: null, accessToken: null, error: { message: "Email/Password sign-up is disabled."} };
+};
+
+// Placeholder for Email/Password Sign In if re-enabled
+export const signInWithEmail = async (email: string, password: string): Promise<SignInResult> => {
+  // const { signInWithEmailAndPassword } = await import('firebase/auth');
+  // try {
+  //   const userCredential = await signInWithEmailAndPassword(auth, email, password);
+  //   await handleUserDocument(userCredential.user); // Update last login
+  //   return { user: userCredential.user, accessToken: null }; // No Google access token here
+  // } catch (error: any) {
+  //   console.error("Error signing in with email and password:", error);
+  //   return { user: null, accessToken: null, error: { code: error.code, message: error.message } };
+  // }
+  console.warn("signInWithEmail is currently disabled.");
+  return { user: null, accessToken: null, error: { message: "Email/Password sign-in is disabled."} };
 };
