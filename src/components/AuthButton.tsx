@@ -1,98 +1,58 @@
 
 "use client";
 
-import React, { useState } from 'react';
-import { LogOut, UserCircle } from "lucide-react";
+import React from 'react'; // useState removed
+// import { LogOut, UserCircle } from "lucide-react"; // Icons for auth states removed
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
-import { signOut } from "@/lib/firebase/auth";
-import { useRouter } from "next/navigation";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { EmailPasswordAuthForm } from './EmailPasswordAuthForm'; // Import the new form
+// import { signOut } from "@/lib/firebase/auth"; // SignOut is now a no-op
+// import { useRouter } from "next/navigation";
+// import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+// import {
+//   DropdownMenu,
+//   DropdownMenuContent,
+//   DropdownMenuItem,
+//   DropdownMenuLabel,
+//   DropdownMenuSeparator,
+//   DropdownMenuTrigger,
+// } from "@/components/ui/dropdown-menu";
+// import {
+//   Dialog,
+//   DialogContent,
+//   DialogDescription,
+//   DialogHeader,
+//   DialogTitle,
+//   DialogTrigger,
+// } from "@/components/ui/dialog";
+// import { EmailPasswordAuthForm } from './EmailPasswordAuthForm'; // Form removed
 
 export function AuthButton() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-  const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
+  const { user, loading } = useAuth(); // user is mock, loading is false
+  // const router = useRouter();
+  // const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false); // Dialog logic removed
 
-  const handleSignOut = async () => {
-    await signOut();
-    router.push("/"); // Redirect to home page after sign out
-  };
+  // const handleSignOut = async () => { // Sign out logic removed
+  //   await signOut();
+  //   router.push("/"); 
+  // };
 
-  if (loading) {
+  if (loading) { // This case should not be hit with auth removed
     return <Button variant="outline" disabled>Loading...</Button>;
   }
 
-  if (user) {
-    return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={user.photoURL || undefined} alt={user.displayName || user.email || "User"} />
-              <AvatarFallback>{user.displayName ? user.displayName[0].toUpperCase() : (user.email ? user.email[0].toUpperCase() : "U")}</AvatarFallback>
-            </Avatar>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56" align="end" forceMount>
-          <DropdownMenuLabel className="font-normal">
-            <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none">{user.displayName || "User"}</p>
-              <p className="text-xs leading-none text-muted-foreground">
-                {user.email}
-              </p>
-            </div>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => router.push('/dashboard')}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2 h-4 w-4"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
-            <span>Dashboard</span>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleSignOut}>
-            <LogOut className="mr-2 h-4 w-4" />
-            <span>Log out</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    );
+  // Since authentication is removed, this button doesn't need to do much.
+  // It could be removed entirely from layouts, or display some generic info.
+  // For now, let's make it render nothing to avoid clutter if it's still in a layout.
+  if (!user) { // This case should also not be hit if user is always mocked
+     console.warn("AuthButton: No user found, this shouldn't happen with mocked auth.");
+     return null;
   }
 
-  // If no user and not loading, show Sign In / Sign Up button triggering a dialog
-  return (
-    <Dialog open={isAuthDialogOpen} onOpenChange={setIsAuthDialogOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline">
-          <UserCircle className="mr-2 h-4 w-4" />
-          Sign In / Sign Up
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Access Your Account</DialogTitle>
-          <DialogDescription>
-            Sign in to continue or sign up to create a new account.
-          </DialogDescription>
-        </DialogHeader>
-        <EmailPasswordAuthForm onSuccess={() => setIsAuthDialogOpen(false)} />
-      </DialogContent>
-    </Dialog>
-  );
+  // If a mock user exists, we could display something minimal or nothing.
+  // Example: Display mock user's name if needed for debugging, otherwise null.
+  // return <span className="text-sm text-muted-foreground">User: {user.displayName} (Mocked)</span>;
+
+  // Returning null as its primary purpose (login/logout) is gone.
+  // If it's still used in layouts, it won't render anything visible.
+  return null;
 }

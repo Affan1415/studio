@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -14,13 +15,12 @@ import {
   SidebarMenuButton,
   SidebarInset,
   SidebarTrigger,
-  SidebarMenuSkeleton,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/icons";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import React, { useEffect } from "react";
+import React from "react"; // useEffect removed as auth check is gone
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 
 const navItems = [
@@ -36,17 +36,17 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading } = useAuth();
+  const { user, loading } = useAuth(); // user will be mock, loading false
   const router = useRouter();
   const pathname = usePathname();
 
-  useEffect(() => {
-    if (!loading && !user) {
-      router.replace("/");
-    }
-  }, [user, loading, router]);
+  // useEffect(() => { // Auth check removed
+  //   if (!loading && !user) {
+  //     router.replace("/");
+  //   }
+  // }, [user, loading, router]);
 
-  if (loading || !user) {
+  if (loading) { // Should not happen with auth removed
     return (
       <div className="flex h-screen items-center justify-center">
         <LoadingSpinner size={48} />
@@ -68,7 +68,6 @@ export default function DashboardLayout({
              <Icons.sheet className="h-8 w-8 text-primary" />
           </Link>
         </SidebarHeader>
-
 
         <SidebarContent>
           <SidebarMenu>
@@ -92,24 +91,27 @@ export default function DashboardLayout({
            <div className="group-data-[collapsible=icon]:hidden">
             <ThemeToggle />
            </div>
-           <Button variant="ghost" onClick={async () => {
-             const { signOut } = await import("@/lib/firebase/auth");
+           {/* Logout button removed as auth is gone */}
+           {/* <Button variant="ghost" onClick={async () => {
+             const { signOut } = await import("@/lib/firebase/auth"); // signOut is now a no-op
              await signOut();
              router.push('/');
            }} className="w-full justify-start group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:aspect-square group-data-[collapsible=icon]:p-0">
             <Icons.logOut />
             <span className="group-data-[collapsible=icon]:hidden ml-2">Logout</span>
-          </Button>
-          <div className="flex items-center gap-2 mt-2 group-data-[collapsible=icon]:hidden">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={user.photoURL || undefined} />
-              <AvatarFallback>{user.displayName ? user.displayName[0] : user.email ? user.email[0] : 'U'}</AvatarFallback>
-            </Avatar>
-            <div className="text-sm">
-              <div className="font-medium truncate">{user.displayName || "User"}</div>
-              <div className="text-xs text-muted-foreground truncate">{user.email}</div>
+          </Button> */}
+          {user && ( // Display mock user info
+            <div className="flex items-center gap-2 mt-2 group-data-[collapsible=icon]:hidden">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={user.photoURL || undefined} />
+                <AvatarFallback>{user.displayName ? user.displayName[0] : user.email ? user.email[0] : 'U'}</AvatarFallback>
+              </Avatar>
+              <div className="text-sm">
+                <div className="font-medium truncate">{user.displayName || "User"}</div>
+                <div className="text-xs text-muted-foreground truncate">{user.email}</div>
+              </div>
             </div>
-          </div>
+          )}
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="bg-muted/30">

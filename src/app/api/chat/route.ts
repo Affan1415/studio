@@ -1,23 +1,30 @@
+
 // src/app/api/chat/route.ts
 import { NextResponse } from "next/server";
-import { auth as adminAuth } from "firebase-admin";
-import { initAdminApp } from "@/lib/firebase/admin-config";
-import { chatWithSheet, writebackToSheet } from "@/ai/flows"; // Assuming flows are barrel exported from src/ai/flows/index.ts
-import { getStoredGoogleAccessToken as getClientSdkStoredToken, addChatMessage } from "@/lib/firebase/firestore"; // Uses client SDK for Firestore ops
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase/config";
+// import { auth as adminAuth } from "firebase-admin"; // Admin auth for token verification removed
+// import { initAdminApp } from "@/lib/firebase/admin-config"; // Still needed if other admin features used, but not for auth
+import { chatWithSheet, writebackToSheet } from "@/ai/flows";
+import { addChatMessage } from "@/lib/firebase/firestore";
+// import { doc, getDoc } from "firebase/firestore"; // For user sheet verification, now uses mock user
+// import { db } from "@/lib/firebase/config"; // For user sheet verification
 import { formatSheetDataForPrompt, getBaseUrl } from "@/lib/utils";
 
-initAdminApp();
+// initAdminApp(); // Initialize admin app if still needed for other purposes
+
+const MOCK_USER_ID = "mock-user-001"; // Consistent mock user ID
 
 // Helper function to fetch sheet data (could be from cache or API)
-async function getSheetData(spreadsheetId: string, firebaseIdToken: string): Promise<any[][]> {
-  // This internal call needs to authenticate itself to the sheet data API route
-  const response = await fetch(`${getBaseUrl()}/api/sheets/${spreadsheetId}/data`, {
-    headers: {
-      Authorization: `Bearer ${firebaseIdToken}`,
-    },
-  });
+async function getSheetData(spreadsheetId: string): Promise<any[][]> {
+  // This internal call needs to adapt as firebaseIdToken is removed
+  // It might use a service account or other auth if sheets are private.
+  // For now, assuming it might fetch public sheets or will be adapted later.
+  const response = await fetch(`${getBaseUrl()}/api/sheets/${spreadsheetId}/data`
+  //   , {
+  //   headers: {
+  //     // Authorization: `Bearer ${firebaseIdToken}`, // Removed
+  //   },
+  // }
+  );
   if (!response.ok) {
     const errorData = await response.json();
     throw new Error(`Failed to fetch sheet data for chat: ${errorData.error || response.statusText}`);
@@ -26,18 +33,21 @@ async function getSheetData(spreadsheetId: string, firebaseIdToken: string): Pro
   return result.data;
 }
 
-// Helper function to update Google Sheet
-async function updateGoogleSheet(spreadsheetId: string, range: string, value: string, googleAccessToken: string): Promise<void> {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`; // Or RAW as per original req
+// Helper function to update Google Sheet - This will likely fail without a valid Google Access Token
+async function updateGoogleSheet(spreadsheetId: string, range: string, value: string, googleAccessToken: string | null): Promise<void> {
+  if (!googleAccessToken) {
+    throw new Error("Cannot update Google Sheet: Google Access Token is missing.");
+  }
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`;
   
   const response = await fetch(url, {
-    method: 'PUT', // PATCH is also an option, PUT is simpler for single cell with valueInputOption
+    method: 'PUT',
     headers: {
       Authorization: `Bearer ${googleAccessToken}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      values: [[value]], // Value must be a 2D array
+      values: [[value]],
     }),
   });
 
@@ -51,13 +61,14 @@ async function updateGoogleSheet(spreadsheetId: string, range: string, value: st
 
 export async function POST(request: Request) {
   try {
-    const authorization = request.headers.get("Authorization");
-    if (!authorization?.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const firebaseIdToken = authorization.split("Bearer ")[1];
-    const decodedToken = await adminAuth().verifyIdToken(firebaseIdToken);
-    const userId = decodedToken.uid;
+    // const authorization = request.headers.get("Authorization"); // Auth removed
+    // if (!authorization?.startsWith("Bearer ")) {
+    //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // }
+    // const firebaseIdToken = authorization.split("Bearer ")[1];
+    // const decodedToken = await adminAuth().verifyIdToken(firebaseIdToken); // Auth removed
+    // const userId = decodedToken.uid;
+    const userId = MOCK_USER_ID; // Use mock user ID
 
     const { question, spreadsheetId, useWritebackFlow } = await request.json();
 
@@ -65,40 +76,42 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Question and Spreadsheet ID are required" }, { status: 400 });
     }
 
-    // Verify user has this sheet connected
-    const userSheetRef = doc(db, "users", userId, "sheets", spreadsheetId);
-    const userSheetDoc = await getDoc(userSheetRef); // client SDK
-    if (!userSheetDoc.exists()) {
-      return NextResponse.json({ error: "Sheet not connected or access denied" }, { status: 403 });
-    }
-    const sheetConfig = userSheetDoc.data();
+    // User sheet verification might need to be adapted or removed if it relies on real user IDs
+    // const userSheetRef = doc(db, "users", userId, "sheets", spreadsheetId);
+    // const userSheetDoc = await getDoc(userSheetRef);
+    // if (!userSheetDoc.exists()) {
+    //   // If using MOCK_USER_ID, this check might need to be bypassed or use the mock ID for a generic record
+    //   console.warn(`Sheet check for ${spreadsheetId} bypassed or using mock user ${userId}.`);
+    //   // return NextResponse.json({ error: "Sheet not connected or access denied" }, { status: 403 });
+    // }
+    // const sheetConfig = userSheetDoc.data();
 
 
-    // Log user message
     await addChatMessage(userId, spreadsheetId, { text: question, sender: "user" });
 
-    const sheetDataArray = await getSheetData(spreadsheetId, firebaseIdToken);
-    const sheetDataString = formatSheetDataForPrompt(sheetDataArray); // Or provide raw JSON string to Genkit flow
+    const sheetDataArray = await getSheetData(spreadsheetId); // firebaseIdToken removed
+    const sheetDataString = formatSheetDataForPrompt(sheetDataArray);
     
-    const googleAccessToken = await getClientSdkStoredToken(userId); // client SDK
-    if (!googleAccessToken) {
-        // This is critical for writeback. If not present, writeback cannot occur.
-        // The chat can still proceed in a read-only mode if the flow supports it.
+    // getClientSdkStoredToken was for Google Sign-In, will return null.
+    // const googleAccessToken = await getClientSdkStoredToken(userId); 
+    const googleAccessToken: string | null = null; // Explicitly null as Google auth is removed
+    
+    if (!googleAccessToken && useWritebackFlow) {
         console.warn(`Google Access Token not found for user ${userId}. Writeback will be disabled.`);
     }
 
     let aiResponse;
-    if (useWritebackFlow && googleAccessToken) { // Prefer writeback flow if conditions met
+    if (useWritebackFlow && googleAccessToken) {
       aiResponse = await writebackToSheet({
         question,
-        sheetData: sheetDataString, // Or JSON.stringify(sheetDataArray)
+        sheetData: sheetDataString,
         spreadsheetId,
-        accessToken: googleAccessToken, // Pass token for potential direct API calls within flow if needed
+        accessToken: googleAccessToken,
       });
     } else {
       aiResponse = await chatWithSheet({
         question,
-        sheetData: sheetDataString, // Or JSON.stringify(sheetDataArray)
+        sheetData: sheetDataString,
       });
     }
     
@@ -116,22 +129,19 @@ export async function POST(request: Request) {
           botMessageText += `\n(Note: I tried to update the sheet but encountered an error: ${updateError.message})`;
         }
       } else {
-         botMessageText += `\n(Note: I identified an update for ${aiResponse.update.range} but couldn't apply it as Google Sheets access is not currently configured for writeback.)`;
+         botMessageText += `\n(Note: I identified an update for ${aiResponse.update.range} but couldn't apply it as Google Sheets access is not currently configured.)`;
       }
     }
 
-    // Log bot response
     await addChatMessage(userId, spreadsheetId, { text: botMessageText, sender: "bot", updateApplied: updateAppliedInfo });
 
     return NextResponse.json({ response: botMessageText, update: aiResponse.update });
 
   } catch (error: any) {
     console.error("Error in chat API:", error);
-    if (error.code === 'auth/id-token-expired' || error.code === 'auth/argument-error') {
-      return NextResponse.json({ error: "Unauthorized: Invalid or expired token" }, { status: 401 });
-    }
-    // Log error for bot if it occurs during AI processing
-    // await addChatMessage(userId, spreadsheetId, { text: `Sorry, I encountered an error: ${error.message}`, sender: "bot" });
+    // if (error.code === 'auth/id-token-expired' || error.code === 'auth/argument-error') { // Auth errors no longer relevant
+    //   return NextResponse.json({ error: "Unauthorized: Invalid or expired token" }, { status: 401 });
+    // }
     return NextResponse.json({ error: `Internal server error: ${error.message}` }, { status: 500 });
   }
 }

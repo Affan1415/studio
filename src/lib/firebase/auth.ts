@@ -1,43 +1,25 @@
 import {
-  signOut as firebaseSignOut,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
   type UserCredential,
   type User,
 } from "firebase/auth";
-import { auth, db } from "./config";
+import { auth, db } from "./config"; // auth might not be used anymore if all auth calls are removed
 import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 
-// Email/Password Sign-Up
-export const signUpWithEmail = async (email: string, password: string): Promise<UserCredential> => {
-  try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    await handleUserDocument(userCredential.user); // Create user doc in Firestore
-    return userCredential;
-  } catch (error) {
-    console.error("Error signing up with email and password:", error);
-    throw error; // Re-throw for the component to handle
-  }
+// Email/Password Sign-Up (No longer used)
+export const signUpWithEmail = async (email: string, password: string): Promise<UserCredential | null> => {
+  console.warn("Email sign-up is disabled as authentication has been removed.");
+  return null;
 };
 
-// Email/Password Sign-In
-export const signInWithEmail = async (email: string, password: string): Promise<UserCredential> => {
-  try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    // User document should already exist or be handled by onAuthStateChanged logic if first login with new method
-    return userCredential;
-  } catch (error) {
-    console.error("Error signing in with email and password:", error);
-    throw error; // Re-throw for the component to handle
-  }
+// Email/Password Sign-In (No longer used)
+export const signInWithEmail = async (email: string, password: string): Promise<UserCredential | null> => {
+  console.warn("Email sign-in is disabled as authentication has been removed.");
+  return null;
 };
 
 export const signOut = async (): Promise<void> => {
-  try {
-    await firebaseSignOut(auth);
-  } catch (error) {
-    console.error("Error signing out:", error);
-  }
+  console.warn("Sign out is disabled as authentication has been removed.");
+  // In a no-auth setup, signOut might clear local state if any, but Firebase signOut is irrelevant.
 };
 
 // This function is no longer relevant for Google OAuth token management
@@ -47,36 +29,32 @@ export const getStoredGoogleAccessToken = async (userId: string): Promise<string
 };
 
 // Handles user document creation in Firestore upon first sign-up or to update details
-export const handleUserDocument = async (user: User): Promise<void> => {
-  if (!user) return;
-  const publicUserRef = doc(db, "users", user.uid);
-  const userDoc = await getDoc(publicUserRef);
-
-  // Prepare base user data
-  const userData: { [key: string]: any } = {
-    uid: user.uid,
-    email: user.email,
-    // displayName and photoURL might be null for email/password users initially
-    displayName: user.displayName || user.email?.split('@')[0] || "User", // Default display name
-    photoURL: user.photoURL,
-  };
-
-  if (!userDoc.exists()) {
-    // New user, create document with createdAt
-    userData.createdAt = serverTimestamp();
-    try {
-      await setDoc(publicUserRef, userData);
-    } catch (error) {
-      console.error("Error creating user document:", error);
-    }
-  } else {
-    // Existing user, update last login or other relevant fields if necessary (optional)
-    // For now, we'll just ensure the basic info is there.
-    // userData.lastLoginAt = serverTimestamp(); // Example
-    try {
-      await setDoc(publicUserRef, userData, { merge: true }); // Merge to avoid overwriting existing fields not handled here
-    } catch (error) {
-      console.error("Error updating user document:", error);
-    }
+// This function might still be called by some logic, so we'll make it a no-op or adapt it.
+// For a no-auth setup, creating user-specific documents might not make sense unless a generic ID is used.
+export const handleUserDocument = async (user: User | null): Promise<void> => {
+  if (!user) {
+    console.warn("handleUserDocument called with no user; authentication is removed.");
+    return;
   }
+  // With auth removed, this function's original purpose is diminished.
+  // If you still need a "user" document for a generic app user, you could create/update one with a fixed ID.
+  // For now, let's log and do nothing to prevent errors.
+  console.log("handleUserDocument called for user:", user.uid, " (Auth is removed, this might be a mock user)");
+
+  // Example: If you wanted to create a generic document for "the app user"
+  // const genericUserId = "default-app-user";
+  // const publicUserRef = doc(db, "users", genericUserId);
+  // const userDoc = await getDoc(publicUserRef);
+  // const userData = {
+  //   uid: genericUserId,
+  //   email: user.email || "anonymous@example.com",
+  //   displayName: user.displayName || "App User",
+  //   photoURL: user.photoURL,
+  //   lastActivity: serverTimestamp(),
+  // };
+  // try {
+  //   await setDoc(publicUserRef, userData, { merge: true });
+  // } catch (error) {
+  //   console.error("Error creating/updating generic user document:", error);
+  // }
 };

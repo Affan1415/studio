@@ -1,57 +1,52 @@
+// src/components/providers/auth-provider.tsx
 "use client";
 
 import type { User as FirebaseUser } from "firebase/auth";
-import { onAuthStateChanged } from "firebase/auth";
+// import { onAuthStateChanged } from "firebase/auth"; // No longer needed
+// import { auth } from "@/lib/firebase/config"; // No longer needed for onAuthStateChanged
 import type { ReactNode } from "react";
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { auth } from "@/lib/firebase/config";
 import type { DocumentData } from "firebase/firestore";
 
-export interface User extends FirebaseUser {
-  customData?: DocumentData; // For any custom user data from Firestore
-  // googleAccessToken field removed as Google Auth is removed
+export interface User extends Partial<FirebaseUser> { // Making FirebaseUser properties partial
+  uid: string; // uid is essential
+  customData?: DocumentData;
+  // Mock user will need to satisfy this, or make it more flexible
+  email?: string | null;
+  displayName?: string | null;
+  photoURL?: string | null;
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  isAdmin?: boolean; // Example for role-based access
   // getGoogleAccessToken method removed
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Define a mock user for the no-authentication setup
+const mockUser: User = {
+  uid: "mock-user-001",
+  email: "user@example.com",
+  displayName: "App User",
+  photoURL: null,
+  // Add any other User properties if your components rely on them, e.g.
+  // emailVerified: true,
+  // isAnonymous: false,
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  // const [isAdmin, setIsAdmin] = useState<boolean>(false); // Example
+  // User is now always the mockUser, loading is always false.
+  const [user, setUser] = useState<User | null>(mockUser);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        // Optionally fetch custom user data from Firestore here
-        // and combine it with firebaseUser
-        // For example:
-        // const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
-        // const customData = userDoc.exists() ? userDoc.data() : {};
-
-        setUser(firebaseUser as User);
-
-        // Example: Check for admin custom claim
-        // const idTokenResult = await firebaseUser.getIdTokenResult();
-        // setIsAdmin(!!idTokenResult.claims.admin);
-      } else {
-        setUser(null);
-        // setIsAdmin(false);
-      }
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
+    // No actual authentication state to listen to.
+    // We just ensure loading is false and user is set to the mock user.
+    setUser(mockUser);
+    setLoading(false);
   }, []);
-
-  // getGoogleAccessToken method removed as Google Sign-In is no longer used.
-  // If other OAuth providers are added in the future, similar token management might be needed.
 
   return (
     <AuthContext.Provider value={{ user, loading }}>

@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useState, useCallback } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
-import type { ChatMessage as FirestoreChatMessage } from "@/lib/firebase/firestore"; // Use a distinct type if needed
-import { Timestamp } from "firebase/firestore";
+// import type { ChatMessage as FirestoreChatMessage } from "@/lib/firebase/firestore";
+// import { Timestamp } from "firebase/firestore";
 
 export interface ChatMessage {
   id: string;
@@ -14,7 +15,8 @@ export interface ChatMessage {
 }
 
 export function useChat(spreadsheetId: string | null) {
-  const { user, getGoogleAccessToken } = useAuth();
+  // user will be the mock user from AuthProvider. getGoogleAccessToken was removed.
+  const { user } = useAuth(); 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,8 +30,8 @@ export function useChat(spreadsheetId: string | null) {
 
   const sendMessage = useCallback(
     async (text: string) => {
-      if (!user || !spreadsheetId) {
-        setError("User not authenticated or spreadsheet not selected.");
+      if (!user || !spreadsheetId) { // user will be the mock user
+        setError("User (mocked) not available or spreadsheet not selected.");
         return;
       }
       setIsLoading(true);
@@ -40,7 +42,6 @@ export function useChat(spreadsheetId: string | null) {
         { id: userMessageId, text, sender: "user", timestamp: new Date() },
       ]);
       
-      // Add a temporary loading message for the bot
       const loadingBotMessageId = (Date.now() + 1).toString();
       setMessages((prevMessages) => [
         ...prevMessages,
@@ -48,17 +49,17 @@ export function useChat(spreadsheetId: string | null) {
       ]);
 
       try {
-        const firebaseIdToken = await user.getIdToken();
+        // const firebaseIdToken = await user.getIdToken(); // getIdToken may not exist on mock user or is irrelevant
+        // The API call will now proceed without an IdToken.
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${firebaseIdToken}`,
+            // Authorization: `Bearer ${firebaseIdToken}`, // Auth header removed
           },
-          body: JSON.stringify({ question: text, spreadsheetId, useWritebackFlow: true }), // Example: enable writeback flow
+          body: JSON.stringify({ question: text, spreadsheetId, useWritebackFlow: true }),
         });
 
-        // Remove the loading bot message
         setMessages(prev => prev.filter(msg => msg.id !== loadingBotMessageId));
 
         if (!response.ok) {
@@ -72,22 +73,19 @@ export function useChat(spreadsheetId: string | null) {
       } catch (err: any) {
         console.error("Chat error:", err);
         setError(err.message || "An unexpected error occurred.");
-        // Remove loading message and add error message if needed
         setMessages(prev => prev.filter(msg => msg.id !== loadingBotMessageId));
         addMessage(err.message || "Sorry, I couldn't process that.", "bot");
       } finally {
         setIsLoading(false);
       }
     },
-    [user, spreadsheetId, getGoogleAccessToken]
+    [user, spreadsheetId] // getGoogleAccessToken removed from dependencies
   );
   
   const loadInitialMessages = useCallback(async () => {
-    if (!user || !spreadsheetId) return;
-    // TODO: Implement fetching historical messages if needed
+    if (!user || !spreadsheetId) return; // user is mock user
     // For now, we start with a clean slate or a welcome message
-    // Example:
-    // setMessages([{ id: 'initial-bot', text: `Hello! I'm ready to chat about sheet ${spreadsheetId}.`, sender: 'bot', timestamp: new Date() }]);
+    // setMessages([{ id: 'initial-bot', text: `Hello! I'm ready to chat about sheet ${spreadsheetId}. (Auth Disabled)`, sender: 'bot', timestamp: new Date() }]);
   }, [user, spreadsheetId]);
 
 
