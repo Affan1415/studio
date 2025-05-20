@@ -17,28 +17,41 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Icons } from './icons'; // For loading spinner
+import { useToast } from '@/hooks/use-toast';
 
 export function AuthButton() {
   const { user, loading, setGoogleAccessToken, googleAccessToken } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
   const handleSignInWithGoogle = async () => {
     const result = await signInWithGoogle();
     if (result && result.user) {
       setGoogleAccessToken(result.accessToken);
-      // Optionally, you can store the accessToken in localStorage or context for broader use
-      // For example, if your API calls from other components need it.
+      toast({
+        title: "Signed In",
+        description: `Welcome, ${result.user.displayName || result.user.email}!`,
+      });
       console.log("Google Sign-In successful, Access Token:", result.accessToken ? "obtained" : "not obtained");
       router.push("/dashboard"); // Navigate to dashboard on successful login
     } else {
       // Handle sign-in failure (e.g., display a toast message)
       console.error("Google Sign-In failed or was cancelled.");
+      toast({
+        title: "Sign-In Failed",
+        description: "Could not sign in with Google. The popup may have been closed or an error occurred.",
+        variant: "destructive",
+      });
     }
   };
 
   const handleSignOut = async () => {
     await signOut();
     setGoogleAccessToken(null); // Clear access token from context
+    toast({
+      title: "Signed Out",
+      description: "You have been successfully signed out.",
+    });
     router.push("/");
   };
 
