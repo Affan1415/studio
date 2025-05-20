@@ -1,1 +1,5 @@
-// Flows will be imported for their side effects in this file.
+import { config } from 'dotenv';
+config();
+
+import '@/ai/flows/writeback-to-sheet.ts';
+import '@/ai/flows/chat-with-sheet.ts';
